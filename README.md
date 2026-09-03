@@ -11,7 +11,7 @@
 - **AI API**: OpenAI GPT-3.5-turbo (`openai==0.28.1`)
 - **Deployment**: Vercel
 
-Vercel은 `pyproject.toml`의 `tool.vercel.entrypoint` 설정을 통해 `api.chat:handler`를 Python 함수 진입점으로 사용합니다. `vercel.json`의 별도 API 재작성 설정은 사용하지 않습니다.
+Vercel은 `pyproject.toml`의 `tool.vercel.entrypoint` 설정을 통해 `api.chat:app`을 Flask 애플리케이션 진입점으로 사용합니다. Flask가 `/`에서 `index.html`을 제공하고 `/api/chat`에서 AI 요청을 처리하므로 별도 `vercel.json` 재작성 설정이 필요하지 않습니다.
 Python 실행 버전은 `.python-version`과 `pyproject.toml`에서 3.12로 고정하며, `project` 테이블은 Vercel의 `uv lock` 의존성 설치에 사용됩니다.
 
 ## 3. 환경 변수 설정

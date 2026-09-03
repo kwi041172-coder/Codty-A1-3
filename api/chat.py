@@ -1,70 +1,54 @@
-# api/chat.py
-from http.server import BaseHTTPRequestHandler
-import json
 import os
-import openai
 
-# 환경 변수에서 API 키 로드 (보안 준수)
+import openai
+from flask import Flask, jsonify, request, send_from_directory
+
+
+PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+app = Flask(__name__, static_folder=PROJECT_ROOT, static_url_path="")
 openai.api_key = os.getenv("OPENAI_API_KEY")
 
-class handler(BaseHTTPRequestHandler):
-    def _send_json(self, status, payload):
-        self.send_response(status)
-        self.send_header('Content-Type', 'application/json; charset=utf-8')
-        self.end_headers()
-        self.wfile.write(json.dumps(payload, ensure_ascii=False).encode('utf-8'))
 
-    def do_GET(self):
-        self._send_json(405, {"error": "POST 요청만 허용됩니다."})
+@app.get("/")
+def home():
+    return send_from_directory(PROJECT_ROOT, "index.html")
 
-    def do_POST(self):
-        try:
-            if not openai.api_key:
-                self._send_json(500, {"error": "OPENAI_API_KEY 환경 변수가 설정되지 않았습니다."})
-                return
 
-            content_length_header = self.headers.get('Content-Length')
-            if content_length_header is None:
-                self._send_json(400, {"error": "요청 본문이 필요합니다."})
-                return
+@app.route("/api/chat", methods=["POST"])
+def chat():
+    if not openai.api_key:
+        return jsonify(error="OPENAI_API_KEY 환경 변수가 설정되지 않았습니다."), 500
 
-            try:
-                content_length = int(content_length_header)
-            except ValueError:
-                self._send_json(400, {"error": "잘못된 요청 본문입니다."})
-                return
+    data = request.get_json(silent=True)
+    if not isinstance(data, dict):
+        return jsonify(error="JSON 형식의 요청이 필요합니다."), 400
 
-            post_data = self.rfile.read(content_length)
-            try:
-                data = json.loads(post_data)
-            except json.JSONDecodeError:
-                self._send_json(400, {"error": "JSON 형식의 요청이 필요합니다."})
-                return
+    user_message = data.get("message", "")
+    if not isinstance(user_message, str) or not user_message.strip():
+        return jsonify(error="메시지를 입력하세요."), 400
 
-            if not isinstance(data, dict):
-                self._send_json(400, {"error": "잘못된 요청 형식입니다."})
-                return
+    try:
+        response = openai.ChatCompletion.create(
+            model="gpt-3.5-turbo",
+            messages=[
+                {
+                    "role": "system",
+                    "content": (
+                        "당신은 초보자를 위한 친절한 영어 선생님입니다. "
+                        "요청한 상황에 맞는 짧은 영어 문장 3개와 한글 해석, "
+                        "그리고 한국어 발음을 적어주세요."
+                    ),
+                },
+                {"role": "user", "content": user_message.strip()},
+            ],
+        )
+    except openai.error.OpenAIError:
+        return jsonify(error="AI 서비스에 연결할 수 없습니다. 잠시 후 다시 시도해주세요."), 502
 
-            user_message = data.get("message", "")
+    reply = response.choices[0].message.content
+    return jsonify(reply=reply)
 
-            # 실패 처리 1: 빈 입력값
-            if not isinstance(user_message, str) or not user_message.strip():
-                self._send_json(400, {"error": "메시지를 입력하세요."})
-                return
 
-            # AI API 호출
-            response = openai.ChatCompletion.create(
-                model="gpt-3.5-turbo",
-                messages=[
-                    {"role": "system", "content": "당신은 초보자를 위한 친절한 영어 선생님입니다. 요청한 상황에 맞는 짧은 영어 문장 3개와 한글 해석, 그리고 한국어 발음을 적어주세요."},
-                    {"role": "user", "content": user_message}
-                ]
-            )
-
-            reply = response.choices[0].message.content
-            
-            self._send_json(200, {"reply": reply})
-
-        except Exception:
-            # 실패 처리 2: API 또는 서버 오류
-            self._send_json(500, {"error": "서버 오류가 발생했습니다."})
+@app.errorhandler(405)
+def method_not_allowed(error):
+    return jsonify(error=error.description or "POST 요청만 허용됩니다."), 405
