@@ -12,6 +12,7 @@
 - **Deployment**: Vercel
 
 Vercel은 `pyproject.toml`의 `tool.vercel.entrypoint` 설정을 통해 `api.chat:handler`를 Python 함수 진입점으로 사용합니다. `vercel.json`의 별도 API 재작성 설정은 사용하지 않습니다.
+Python 실행 버전은 `.python-version`과 `pyproject.toml`에서 3.12로 고정하며, `project` 테이블은 Vercel의 `uv lock` 의존성 설치에 사용됩니다.
 
 ## 3. 환경 변수 설정
 Vercel 프로젝트 설정에서 아래 키를 반드시 추가해야 합니다:
