@@ -61,7 +61,7 @@ def chat():
     try:
         client = Anthropic(api_key=api_key, timeout=30.0, max_retries=1)
         response = client.messages.create(
-            model="claude-3-5-haiku-20241022",
+            model="claude-haiku-4-5-20251001",
             max_tokens=600,
             system=(
                 "당신은 초보자를 위한 친절한 영어 선생님입니다. "
