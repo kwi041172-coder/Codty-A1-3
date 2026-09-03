@@ -27,5 +27,5 @@
 ## 4. 배포 및 보안
 - **배포 환경**: Vercel Python Serverless Function
 - **Python 진입점**: `api.chat:app` (Flask 애플리케이션)
-- **환경 변수**: `OPENAI_API_KEY`는 Vercel 환경 변수로만 설정
+- **환경 변수**: `ANTHROPIC_API_KEY`는 Vercel 환경 변수로만 설정
 - **보안 원칙**: API 키를 HTML, JavaScript, GitHub 저장소에 포함하지 않음

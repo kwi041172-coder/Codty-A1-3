@@ -1,10 +1,10 @@
 import os
 
-from openai import (
+from anthropic import (
     APIConnectionError,
     APIError,
     AuthenticationError,
-    OpenAI,
+    Anthropic,
     PermissionDeniedError,
     RateLimitError,
 )
@@ -15,8 +15,8 @@ PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 app = Flask(__name__, static_folder=PROJECT_ROOT, static_url_path="")
 
 
-def get_openai_api_key():
-    value = os.getenv("OPENAI_API_KEY", "").strip()
+def get_anthropic_api_key():
+    value = os.getenv("ANTHROPIC_API_KEY", "").strip()
     if len(value) >= 2 and value[0] == value[-1] and value[0] in {"'", '"'}:
         value = value[1:-1].strip()
     if value.lower().startswith("bearer "):
@@ -41,14 +41,14 @@ def home():
 
 @app.get("/api/health")
 def health():
-    return jsonify(openai=key_status(get_openai_api_key()))
+    return jsonify(anthropic=key_status(get_anthropic_api_key()))
 
 
 @app.route("/api/chat", methods=["POST"])
 def chat():
-    api_key = get_openai_api_key()
+    api_key = get_anthropic_api_key()
     if not api_key:
-        return jsonify(error="OPENAI_API_KEY 환경 변수가 설정되지 않았습니다."), 500
+        return jsonify(error="ANTHROPIC_API_KEY 환경 변수가 설정되지 않았습니다."), 500
 
     data = request.get_json(silent=True)
     if not isinstance(data, dict):
@@ -59,39 +59,38 @@ def chat():
         return jsonify(error="메시지를 입력하세요."), 400
 
     try:
-        client = OpenAI(api_key=api_key, timeout=30.0, max_retries=1)
-        response = client.chat.completions.create(
-            model="gpt-4o-mini",
-            messages=[
-                {
-                    "role": "system",
-                    "content": (
-                        "당신은 초보자를 위한 친절한 영어 선생님입니다. "
-                        "요청한 상황에 맞는 짧은 영어 문장 3개와 한글 해석, "
-                        "그리고 한국어 발음을 적어주세요."
-                    ),
-                },
-                {"role": "user", "content": user_message.strip()},
-            ],
+        client = Anthropic(api_key=api_key, timeout=30.0, max_retries=1)
+        response = client.messages.create(
+            model="claude-3-5-haiku-20241022",
+            max_tokens=600,
+            system=(
+                "당신은 초보자를 위한 친절한 영어 선생님입니다. "
+                "요청한 상황에 맞는 짧은 영어 문장 3개와 한글 해석, "
+                "그리고 한국어 발음을 적어주세요."
+            ),
+            messages=[{"role": "user", "content": user_message.strip()}],
         )
     except AuthenticationError as error:
-        app.logger.warning("OpenAI authentication failed (request_id=%s)", error.request_id)
+        app.logger.warning("Anthropic authentication failed (request_id=%s)", error.request_id)
         return jsonify(
             error=(
-                "OpenAI 인증에 실패했습니다. Vercel에 등록한 키가 폐기되지 않았고 "
-                "OpenAI Platform API 키인지 확인해주세요."
+                "Claude 인증에 실패했습니다. Vercel에 등록한 키가 폐기되지 않았고 "
+                "Anthropic Console API 키인지 확인해주세요."
             )
         ), 502
     except PermissionDeniedError:
-        return jsonify(error="OpenAI 프로젝트에서 API 사용 권한이 없습니다."), 403
+        return jsonify(error="Anthropic 프로젝트에서 API 사용 권한이 없습니다."), 403
     except RateLimitError:
-        return jsonify(error="OpenAI 사용량 한도를 초과했습니다. 잠시 후 다시 시도해주세요."), 429
+        return jsonify(error="Claude 사용량 한도를 초과했습니다. 잠시 후 다시 시도해주세요."), 429
     except APIConnectionError:
-        return jsonify(error="OpenAI 서버에 연결할 수 없습니다. 잠시 후 다시 시도해주세요."), 502
+        return jsonify(error="Claude 서버에 연결할 수 없습니다. 잠시 후 다시 시도해주세요."), 502
     except APIError:
-        return jsonify(error="OpenAI 요청을 처리하지 못했습니다. 잠시 후 다시 시도해주세요."), 502
+        return jsonify(error="Claude 요청을 처리하지 못했습니다. 잠시 후 다시 시도해주세요."), 502
 
-    reply = response.choices[0].message.content or "응답을 받지 못했습니다."
+    reply = "".join(
+        block.text for block in response.content if getattr(block, "type", "") == "text"
+    )
+    reply = reply or "응답을 받지 못했습니다."
     return jsonify(reply=reply)
 
 
