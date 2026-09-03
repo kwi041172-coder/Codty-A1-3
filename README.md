@@ -8,7 +8,7 @@
 ## 2. 기술 스택
 - **Frontend**: HTML5, CSS3, JavaScript (Vanilla JS)
 - **Backend**: Python (Vercel Serverless Functions)
-- **AI API**: OpenAI GPT-3.5-turbo (`openai==0.28.1`)
+- **AI API**: OpenAI GPT-4o-mini (`openai>=1.0.0,<2.0.0`)
 - **Deployment**: Vercel
 
 Vercel은 `pyproject.toml`의 `tool.vercel.entrypoint` 설정을 통해 `api.chat:app`을 Flask 애플리케이션 진입점으로 사용합니다. Flask가 `/`에서 `index.html`을 제공하고 `/api/chat`에서 AI 요청을 처리하므로 별도 `vercel.json` 재작성 설정이 필요하지 않습니다.

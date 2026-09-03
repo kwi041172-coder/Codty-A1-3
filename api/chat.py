@@ -1,12 +1,11 @@
 import os
 
-import openai
+from openai import APIConnectionError, APIError, AuthenticationError, OpenAI, RateLimitError
 from flask import Flask, jsonify, request, send_from_directory
 
 
 PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 app = Flask(__name__, static_folder=PROJECT_ROOT, static_url_path="")
-openai.api_key = os.getenv("OPENAI_API_KEY")
 
 
 @app.get("/")
@@ -16,7 +15,8 @@ def home():
 
 @app.route("/api/chat", methods=["POST"])
 def chat():
-    if not openai.api_key:
+    api_key = os.getenv("OPENAI_API_KEY")
+    if not api_key:
         return jsonify(error="OPENAI_API_KEY 환경 변수가 설정되지 않았습니다."), 500
 
     data = request.get_json(silent=True)
@@ -28,8 +28,9 @@ def chat():
         return jsonify(error="메시지를 입력하세요."), 400
 
     try:
-        response = openai.ChatCompletion.create(
-            model="gpt-3.5-turbo",
+        client = OpenAI(api_key=api_key, timeout=30.0, max_retries=1)
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
             messages=[
                 {
                     "role": "system",
@@ -42,10 +43,16 @@ def chat():
                 {"role": "user", "content": user_message.strip()},
             ],
         )
-    except openai.error.OpenAIError:
-        return jsonify(error="AI 서비스에 연결할 수 없습니다. 잠시 후 다시 시도해주세요."), 502
+    except AuthenticationError:
+        return jsonify(error="OpenAI API 키가 올바르지 않습니다."), 502
+    except RateLimitError:
+        return jsonify(error="OpenAI 사용량 한도를 초과했습니다. 잠시 후 다시 시도해주세요."), 429
+    except APIConnectionError:
+        return jsonify(error="OpenAI 서버에 연결할 수 없습니다. 잠시 후 다시 시도해주세요."), 502
+    except APIError:
+        return jsonify(error="OpenAI 요청을 처리하지 못했습니다. 잠시 후 다시 시도해주세요."), 502
 
-    reply = response.choices[0].message.content
+    reply = response.choices[0].message.content or "응답을 받지 못했습니다."
     return jsonify(reply=reply)
 
 
