@@ -1,6 +1,13 @@
 import os
 
-from openai import APIConnectionError, APIError, AuthenticationError, OpenAI, RateLimitError
+from openai import (
+    APIConnectionError,
+    APIError,
+    AuthenticationError,
+    OpenAI,
+    PermissionDeniedError,
+    RateLimitError,
+)
 from flask import Flask, jsonify, request, send_from_directory
 
 
@@ -17,9 +24,24 @@ def get_openai_api_key():
     return value
 
 
+def key_status(value):
+    if not value:
+        return {"configured": False}
+    return {
+        "configured": True,
+        "prefix": value[:7],
+        "length": len(value),
+    }
+
+
 @app.get("/")
 def home():
     return send_from_directory(PROJECT_ROOT, "index.html")
+
+
+@app.get("/api/health")
+def health():
+    return jsonify(openai=key_status(get_openai_api_key()))
 
 
 @app.route("/api/chat", methods=["POST"])
@@ -56,10 +78,12 @@ def chat():
         app.logger.warning("OpenAI authentication failed (request_id=%s)", error.request_id)
         return jsonify(
             error=(
-                "OpenAI 인증에 실패했습니다. Vercel 환경 변수에 "
-                "OpenAI Platform API 키가 등록되어 있고 재배포되었는지 확인해주세요."
+                "OpenAI 인증에 실패했습니다. Vercel에 등록한 키가 폐기되지 않았고 "
+                "OpenAI Platform API 키인지 확인해주세요."
             )
         ), 502
+    except PermissionDeniedError:
+        return jsonify(error="OpenAI 프로젝트에서 API 사용 권한이 없습니다."), 403
     except RateLimitError:
         return jsonify(error="OpenAI 사용량 한도를 초과했습니다. 잠시 후 다시 시도해주세요."), 429
     except APIConnectionError:

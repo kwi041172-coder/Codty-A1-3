@@ -49,3 +49,4 @@ vercel --prod
 - Vercel 값에는 키만 입력합니다. `Bearer` 접두사, 따옴표, 줄바꿈, 앞뒤 공백을 포함하지 않아야 합니다.
 - `OPENAI_API_KEY`의 대상 환경(Production)을 선택하고 저장한 뒤 반드시 새 배포를 실행합니다.
 - ChatGPT Plus 구독과 OpenAI API 결제·사용 한도는 별도이므로 Platform의 Billing과 Limits도 확인합니다.
+- 배포된 주소에서 `/api/health`를 열어 `configured: true`인지 확인할 수 있습니다. 이 경로는 키 원문을 반환하지 않습니다.
