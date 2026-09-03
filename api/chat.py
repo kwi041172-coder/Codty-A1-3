@@ -8,6 +8,15 @@ PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 app = Flask(__name__, static_folder=PROJECT_ROOT, static_url_path="")
 
 
+def get_openai_api_key():
+    value = os.getenv("OPENAI_API_KEY", "").strip()
+    if len(value) >= 2 and value[0] == value[-1] and value[0] in {"'", '"'}:
+        value = value[1:-1].strip()
+    if value.lower().startswith("bearer "):
+        value = value[7:].strip()
+    return value
+
+
 @app.get("/")
 def home():
     return send_from_directory(PROJECT_ROOT, "index.html")
@@ -15,7 +24,7 @@ def home():
 
 @app.route("/api/chat", methods=["POST"])
 def chat():
-    api_key = os.getenv("OPENAI_API_KEY")
+    api_key = get_openai_api_key()
     if not api_key:
         return jsonify(error="OPENAI_API_KEY 환경 변수가 설정되지 않았습니다."), 500
 
@@ -43,8 +52,14 @@ def chat():
                 {"role": "user", "content": user_message.strip()},
             ],
         )
-    except AuthenticationError:
-        return jsonify(error="OpenAI API 키가 올바르지 않습니다."), 502
+    except AuthenticationError as error:
+        app.logger.warning("OpenAI authentication failed (request_id=%s)", error.request_id)
+        return jsonify(
+            error=(
+                "OpenAI 인증에 실패했습니다. Vercel 환경 변수에 "
+                "OpenAI Platform API 키가 등록되어 있고 재배포되었는지 확인해주세요."
+            )
+        ), 502
     except RateLimitError:
         return jsonify(error="OpenAI 사용량 한도를 초과했습니다. 잠시 후 다시 시도해주세요."), 429
     except APIConnectionError:

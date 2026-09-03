@@ -43,3 +43,9 @@ vercel --prod
 ```
 
 배포 후 브라우저에서 `/api/chat` 기능을 확인합니다. API 키는 소스 코드나 GitHub에 저장하지 않습니다.
+
+### OpenAI 인증 오류 점검
+- 키는 ChatGPT 웹사이트의 로그인·구독 비밀번호가 아니라 [OpenAI Platform](https://platform.openai.com/api-keys)에서 만든 API 키여야 합니다.
+- Vercel 값에는 키만 입력합니다. `Bearer` 접두사, 따옴표, 줄바꿈, 앞뒤 공백을 포함하지 않아야 합니다.
+- `OPENAI_API_KEY`의 대상 환경(Production)을 선택하고 저장한 뒤 반드시 새 배포를 실행합니다.
+- ChatGPT Plus 구독과 OpenAI API 결제·사용 한도는 별도이므로 Platform의 Billing과 Limits도 확인합니다.
