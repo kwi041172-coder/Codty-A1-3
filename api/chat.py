@@ -3,6 +3,7 @@ import os
 from anthropic import (
     APIConnectionError,
     APIError,
+    APIStatusError,
     AuthenticationError,
     Anthropic,
     PermissionDeniedError,
@@ -61,7 +62,7 @@ def chat():
     try:
         client = Anthropic(api_key=api_key, timeout=30.0, max_retries=1)
         response = client.messages.create(
-            model="claude-haiku-4-5-20251001",
+            model=os.getenv("ANTHROPIC_MODEL", "claude-haiku-4-5-20251001"),
             max_tokens=600,
             system=(
                 "당신은 초보자를 위한 친절한 영어 선생님입니다. "
@@ -84,6 +85,21 @@ def chat():
         return jsonify(error="Claude 사용량 한도를 초과했습니다. 잠시 후 다시 시도해주세요."), 429
     except APIConnectionError:
         return jsonify(error="Claude 서버에 연결할 수 없습니다. 잠시 후 다시 시도해주세요."), 502
+    except APIStatusError as error:
+        app.logger.warning(
+            "Anthropic API error (status=%s, request_id=%s)",
+            error.status_code,
+            error.request_id,
+        )
+        if error.status_code == 401:
+            message = "Claude API 키 인증에 실패했습니다. Anthropic Console에서 키 상태를 확인해주세요."
+        elif error.status_code == 403:
+            message = "Claude API 사용 권한이 없습니다. Workspace와 결제 상태를 확인해주세요."
+        elif error.status_code == 404:
+            message = "Claude 모델을 사용할 수 없습니다. ANTHROPIC_MODEL 설정을 확인해주세요."
+        else:
+            message = f"Claude API 오류가 발생했습니다. (상태 코드: {error.status_code})"
+        return jsonify(error=message), 502
     except APIError:
         return jsonify(error="Claude 요청을 처리하지 못했습니다. 잠시 후 다시 시도해주세요."), 502
 
