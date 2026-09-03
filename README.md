@@ -3,13 +3,15 @@
 
 ## 1. 서비스 소개
 - 사용자가 원하는 상황을 입력하면 AI가 즉석에서 영어 문장과 해석, 발음을 제공합니다.
-- 5060 세대를 고려한 큰 글씨와 직관적인 UI, 다크모드를 지원합니다.
+- 5060 세대를 고려한 직관적인 UI, 반응형 화면, 다크모드를 지원합니다.
 
 ## 2. 기술 스택
 - **Frontend**: HTML5, CSS3, JavaScript (Vanilla JS)
 - **Backend**: Python (Vercel Serverless Functions)
-- **AI API**: OpenAI GPT-3.5-turbo
+- **AI API**: OpenAI GPT-3.5-turbo (`openai==0.28.1`)
 - **Deployment**: Vercel
+
+Vercel은 `pyproject.toml`의 `tool.vercel.entrypoint` 설정을 통해 `api.chat:handler`를 Python 함수 진입점으로 사용합니다. `vercel.json`의 별도 API 재작성 설정은 사용하지 않습니다.
 
 ## 3. 환경 변수 설정
 Vercel 프로젝트 설정에서 아래 키를 반드시 추가해야 합니다:
@@ -25,8 +27,18 @@ Vercel 프로젝트 설정에서 아래 키를 반드시 추가해야 합니다:
 
 ### API 동작
 - `POST /api/chat`: `{ "message": "카페에서 주문할 때" }` 형식으로 요청합니다.
-- 빈 입력, 잘못된 JSON, API 키 누락, 서버 오류에 대해 JSON 오류 응답을 반환합니다.
+- `GET /api/chat`은 허용하지 않습니다.
+- 빈 입력, 잘못된 JSON, 잘못된 요청 형식, API 키 누락, 서버 오류에 대해 JSON 오류 응답을 반환합니다.
 - 브라우저에서는 요청 중 중복 제출을 막고, 응답 오류를 화면에 표시합니다.
 
-## 5. 배포 URL
-- [여기에 본인의 Vercel URL 삽입]
+## 5. 배포
+1. GitHub 저장소를 Vercel에 연결합니다.
+2. Vercel 프로젝트 설정의 **Environment Variables**에 `OPENAI_API_KEY`를 등록합니다.
+3. 프로젝트의 Root Directory가 이 폴더인지 확인합니다.
+4. GitHub의 `main` 브랜치에 push하면 자동 배포되며, 수동 배포는 다음 명령으로 실행합니다.
+
+```powershell
+vercel --prod
+```
+
+배포 후 브라우저에서 `/api/chat` 기능을 확인합니다. API 키는 소스 코드나 GitHub에 저장하지 않습니다.
