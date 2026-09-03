@@ -36,7 +36,8 @@ Vercel 프로젝트 설정에서 아래 키를 반드시 추가해야 합니다:
 1. GitHub 저장소를 Vercel에 연결합니다.
 2. Vercel 프로젝트 설정의 **Environment Variables**에 `ANTHROPIC_API_KEY`를 등록합니다.
 3. 프로젝트의 Root Directory가 이 폴더인지 확인합니다.
-4. GitHub의 `main` 브랜치에 push하면 자동 배포되며, 수동 배포는 다음 명령으로 실행합니다.
+4. 배포 URL : https://codty-a1-3.vercel.app/
+5. GitHub의 `main` 브랜치에 push하면 자동 배포되며, 수동 배포는 다음 명령으로 실행합니다.
 
 ```powershell
 vercel --prod
