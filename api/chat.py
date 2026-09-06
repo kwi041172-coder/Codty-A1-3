@@ -25,6 +25,10 @@ def get_anthropic_api_key():
     return value
 
 
+def get_anthropic_base_url():
+    return os.getenv("ANTHROPIC_BASE_URL", "https://copa.codyssey.kr").strip().rstrip("/")
+
+
 def key_status(value):
     if not value:
         return {"configured": False}
@@ -60,9 +64,14 @@ def chat():
         return jsonify(error="메시지를 입력하세요."), 400
 
     try:
-        client = Anthropic(api_key=api_key, timeout=30.0, max_retries=1)
+        client = Anthropic(
+            api_key=api_key,
+            base_url=get_anthropic_base_url(),
+            timeout=30.0,
+            max_retries=1,
+        )
         response = client.messages.create(
-            model=os.getenv("ANTHROPIC_MODEL", "claude-haiku-4-5-20251001"),
+            model=os.getenv("ANTHROPIC_MODEL", "claude-haiku-4"),
             max_tokens=600,
             system=(
                 "당신은 초보자를 위한 친절한 영어 선생님입니다. "
